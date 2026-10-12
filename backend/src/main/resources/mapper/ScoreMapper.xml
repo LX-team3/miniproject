@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="lx.edu.campingsafe.score.ScoreMapper">
+
+  <!--
+    점수 공식: weight × (zero_dist - 거리) / (zero_dist - full_dist), 0~1 사이로 자름
+    ※ 가까운 시설이 아예 없으면 n.dist가 NULL인데, PostgreSQL의 LEAST/GREATEST는 NULL을 무시해서
+      만점이 나와버림 → COALESCE로 아주 먼 거리(1e12)를 넣어 0점 처리
+    ※ <-> 연산자의 '<' 때문에 XML이 깨지지 않도록 CDATA로 감쌈
+  -->
+
+  <!-- 한 지점(lat, lng)의 항목별 점수 -->
+  <select id="scoreAt" resultType="lx.edu.campingsafe.score.ScoreItem">
+  <![CDATA[
+    WITH p AS (
+      SELECT ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography AS g
+    )
+    SELECT w.facility_type AS type,
+           w.weight,
+           w.full_dist_m,
+           w.zero_dist_m,
+           n.id   AS facility_id,
+           n.name,
+           n.lat,
+           n.lng,
+           ROUND(n.dist::numeric) AS dist_m,
+           ROUND((
+             w.weight * GREATEST(0, LEAST(1,
+               (w.zero_dist_m - COALESCE(n.dist, 1e12)) / (w.zero_dist_m - w.full_dist_m)::float8))
+           )::numeric, 1) AS point
+    FROM campingsafe.score_weights w
+    CROSS JOIN p
+    LEFT JOIN LATERAL (
+      SELECT f.id, f.name, f.lat, f.lng, ST_Distance(f.geom, p.g) AS dist
+      FROM campingsafe.facilities f
+      WHERE f.type = w.facility_type
+        AND COALESCE(f.is_active, true)
+        AND f.geom IS NOT NULL
+      ORDER BY f.geom <-> p.g
+      LIMIT 1
+    ) n ON true
+    ORDER BY w.weight DESC, w.facility_type
+  ]]>
+  </select>
+
+  <!-- 캠핑장(camp) 전체의 총점, 높은 순 -->
+  <select id="campScores" resultType="lx.edu.campingsafe.score.CampScore">
+  <![CDATA[
+    SELECT c.id, c.name, c.address, c.lat, c.lng,
+           ROUND(SUM(
+             w.weight * GREATEST(0, LEAST(1,
+               (w.zero_dist_m - COALESCE(n.dist, 1e12)) / (w.zero_dist_m - w.full_dist_m)::float8))
+           )::numeric, 1) AS total_score
+    FROM campingsafe.facilities c
+    CROSS JOIN campingsafe.score_weights w
+    LEFT JOIN LATERAL (
+      SELECT ST_Distance(f.geom, c.geom) AS dist
+      FROM campingsafe.facilities f
+      WHERE f.type = w.facility_type
+        AND COALESCE(f.is_active, true)
+        AND f.geom IS NOT NULL
+      ORDER BY f.geom <-> c.geom
+      LIMIT 1
+    ) n ON true
+    WHERE c.type = 'camp'
+      AND c.geom IS NOT NULL
+      AND COALESCE(c.is_active, true)
+    GROUP BY c.id, c.name, c.address, c.lat, c.lng
+    ORDER BY total_score DESC, c.name
+  ]]>
+  </select>
+</mapper>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="lx.edu.campingsafe.facility.FacilityMapper">
+
+  <sql id="columns">
+    id, type, role, name, category, phone, address, lat, lng,
+    hours, source, region_code, data_date, is_active
+  </sql>
+
+  <!-- 좌표가 있고 사용 중인 시설만. types가 있으면 그 종류만 -->
+  <select id="findAll" resultType="lx.edu.campingsafe.facility.Facility">
+    SELECT <include refid="columns"/>
+    FROM campingsafe.facilities
+    WHERE lat IS NOT NULL AND lng IS NOT NULL
+      AND COALESCE(is_active, true) = true
+    <if test="types != null and types.size() > 0">
+      AND type IN
+      <foreach collection="types" item="t" open="(" separator="," close=")">#{t}</foreach>
+    </if>
+    ORDER BY type, name
+  </select>
+
+  <select id="findById" resultType="lx.edu.campingsafe.facility.Facility">
+    SELECT <include refid="columns"/>
+    FROM campingsafe.facilities
+    WHERE id = #{id}
+  </select>
+
+  <select id="countByType" resultType="lx.edu.campingsafe.facility.TypeCount">
+    SELECT type, COUNT(*) AS count
+    FROM campingsafe.facilities
+    WHERE lat IS NOT NULL AND lng IS NOT NULL
+      AND COALESCE(is_active, true) = true
+    GROUP BY type
+    ORDER BY type
+  </select>
+</mapper>
