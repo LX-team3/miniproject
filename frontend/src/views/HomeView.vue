@@ -8,7 +8,7 @@ const emit = defineEmits(['go'])
   <div class="home">
     <header class="top">
       <h1>오늘 캠핑 여기서 해도 괜찮을까?</h1>
-      <p class="sub">주변 응급실·파출소·편의점·CCTV까지의 거리로 캠핑 장소의 안심 점수를 알려드려요.</p>
+      <p class="sub">주변 응급실·파출소·편의점·CCTV까지의 거리로 캠핑 장소의 안심 점수를 알려드립니다.</p>
     </header>
 
     <main class="menu">
@@ -22,7 +22,7 @@ const emit = defineEmits(['go'])
         </span>
         <span class="tile-label">본인 캠핑 점수</span>
         <strong class="tile-title">내 캠핑 점수 확인</strong>
-        <span class="tile-desc">지금 위치나 가려는 캠핑장의<br />안전 점수를 보여줘요</span>
+        <span class="tile-desc">지금 위치나 가려는 캠핑장의<br />안전 점수를 보여줍니다.</span>
         <span class="go">확인하기 →</span>
       </button>
 
@@ -36,7 +36,7 @@ const emit = defineEmits(['go'])
         </span>
         <span class="tile-label">위치 지도</span>
         <strong class="tile-title">안전 지도 보기</strong>
-        <span class="tile-desc">캠핑장과 주변 안전 시설을<br />지도에서 한눈에 비교해요</span>
+        <span class="tile-desc">캠핑장과 주변 안전 시설을<br />지도에서 한눈에 비교합니다.</span>
         <span class="go">지도로 가기 →</span>
       </button>
     </main>
